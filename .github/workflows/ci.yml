@@ -1,0 +1,171 @@
+name: CI
+
+on:
+  workflow_call:
+    inputs:
+      repository-name:
+        description: Repository directory to check in the side-by-side workspace
+        required: true
+        type: string
+      core-ref:
+        description: Core ref used when checking a plugin or the distribution
+        default: main
+        type: string
+      siblings-ref:
+        description: Ref of sibling plugins and the distribution
+        default: main
+        type: string
+      run-e2e:
+        description: Run the caller's Chromium acceptance suite
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ${{ inputs.repository-name }}
+    steps:
+      - name: Check out docleus-core
+        if: inputs.repository-name != 'docleus-core'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-core
+          ref: ${{ inputs.core-ref }}
+          path: docleus-core
+          persist-credentials: false
+      - name: Check out docleus-plugin-template
+        if: inputs.repository-name != 'docleus-plugin-template'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-template
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-template
+          persist-credentials: false
+      - name: Check out docleus-plugin-blocks-commonmark
+        if: inputs.repository-name != 'docleus-plugin-blocks-commonmark'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-blocks-commonmark
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-blocks-commonmark
+          persist-credentials: false
+      - name: Check out docleus-plugin-editor
+        if: inputs.repository-name != 'docleus-plugin-editor'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-editor
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-editor
+          persist-credentials: false
+      - name: Check out docleus-plugin-theme-default
+        if: inputs.repository-name != 'docleus-plugin-theme-default'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-theme-default
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-theme-default
+          persist-credentials: false
+      - name: Check out docleus-plugin-auth-oidc
+        if: inputs.repository-name != 'docleus-plugin-auth-oidc'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-auth-oidc
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-auth-oidc
+          persist-credentials: false
+      - name: Check out docleus-plugin-change-requests
+        if: inputs.repository-name != 'docleus-plugin-change-requests'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-change-requests
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-change-requests
+          persist-credentials: false
+      - name: Check out docleus-plugin-collab
+        if: inputs.repository-name != 'docleus-plugin-collab'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-collab
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-collab
+          persist-credentials: false
+      - name: Check out docleus-plugin-search-db
+        if: inputs.repository-name != 'docleus-plugin-search-db'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-search-db
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-search-db
+          persist-credentials: false
+      - name: Check out docleus-plugin-blobs-s3
+        if: inputs.repository-name != 'docleus-plugin-blobs-s3'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-blobs-s3
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-blobs-s3
+          persist-credentials: false
+      - name: Check out docleus-plugin-mermaid
+        if: inputs.repository-name != 'docleus-plugin-mermaid'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-mermaid
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-mermaid
+          persist-credentials: false
+      - name: Check out docleus-plugin-llms-txt
+        if: inputs.repository-name != 'docleus-plugin-llms-txt'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus-plugin-llms-txt
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus-plugin-llms-txt
+          persist-credentials: false
+      - name: Check out docleus
+        if: inputs.repository-name != 'docleus'
+        uses: actions/checkout@v4
+        with:
+          repository: Docleus/docleus
+          ref: ${{ inputs.siblings-ref }}
+          path: docleus
+          persist-credentials: false
+      - name: Check out the caller's revision
+        uses: actions/checkout@v4
+        with:
+          path: ${{ inputs.repository-name }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: docleus-core/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: docleus-core/.nvmrc
+          cache: pnpm
+          cache-dependency-path: "**/pnpm-lock.yaml"
+      - name: Install the source workspace with frozen lockfiles
+        working-directory: .
+        run: |
+          for repository in docleus-core docleus-plugin-* docleus; do
+            pnpm --dir "$repository" install --frozen-lockfile
+          done
+      - name: Build core and plugins
+        working-directory: .
+        run: |
+          pnpm --dir docleus-core build
+          for repository in docleus-plugin-*; do
+            pnpm --dir "$repository" build
+          done
+      - name: Run the repository checks
+        run: pnpm check
+      - name: Install Chromium
+        if: inputs.run-e2e
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run browser acceptance tests
+        if: inputs.run-e2e
+        run: pnpm e2e

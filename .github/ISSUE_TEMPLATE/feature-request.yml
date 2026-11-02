@@ -1,0 +1,18 @@
+name: Feature request
+description: Propose a focused feature or improvement
+title: "feat: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Explain who needs this and what is difficult today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and alternatives
+      description: Consider whether this belongs in a plugin or needs a public extension point.
+    validations:
+      required: true

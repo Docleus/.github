@@ -1,0 +1,26 @@
+name: Bug report
+description: Report a reproducible problem in Docleus
+title: "bug: "
+body:
+  - type: markdown
+    attributes:
+      value: Do not include secrets or private data. Report security vulnerabilities privately.
+  - type: input
+    id: version
+    attributes:
+      label: Version or source revision
+      description: Include the image digest or affected repository commits.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include a minimal reproduction, expected behavior, and actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and logs
+      description: Node, browser, database, plugins, deployment mode, and redacted logs.
